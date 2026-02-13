@@ -1,0 +1,76 @@
+# One Health Global — OHGClinicOrg (Org2) Peer + CouchDB
+
+
+networks:
+  ohg-network:
+    name: ohg-network
+    external: true
+
+volumes:
+  peer0.clinic.onehealthglobal.com:
+
+services:
+  # ============================================================
+  # CouchDB for Clinic Peer
+  # ============================================================
+  couchdb.clinic:
+    image: couchdb:3.3.3
+    container_name: couchdb.clinic.onehealthglobal.com
+    hostname: couchdb.clinic.onehealthglobal.com
+    environment:
+      - COUCHDB_USER=couchdbadmin
+      - COUCHDB_PASSWORD=couchdbadminpw
+    ports:
+      - "7984:5984"
+    networks:
+      - ohg-network
+
+  # ============================================================
+  # Clinic Peer (peer0)
+  # ============================================================
+  peer0.clinic.onehealthglobal.com:
+    image: hyperledger/fabric-peer:2.5.9
+    container_name: peer0.clinic.onehealthglobal.com
+    hostname: peer0.clinic.onehealthglobal.com
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - CORE_VM_ENDPOINT=unix:///var/run/docker.sock
+      - DOCKER_API_VERSION=1.41
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=ohg-network
+      # Peer
+      - CORE_PEER_ID=peer0.clinic.onehealthglobal.com
+      - CORE_PEER_ADDRESS=peer0.clinic.onehealthglobal.com:9051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:9051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.clinic.onehealthglobal.com:9052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:9052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.clinic.onehealthglobal.com:9051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.clinic.onehealthglobal.com:9051
+      - CORE_PEER_LOCALMSPID=OHGClinicOrgMSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      # TLS
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # CouchDB
+      - CORE_LEDGER_STATE_STATEDATABASE=CouchDB
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS=couchdb.clinic.onehealthglobal.com:5984
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME=couchdbadmin
+      - CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD=couchdbadminpw
+      # Metrics
+      - CORE_OPERATIONS_LISTENADDRESS=peer0.clinic.onehealthglobal.com:9445
+      - CORE_METRICS_PROVIDER=prometheus
+    working_dir: /etc/hyperledger/fabric
+    command: peer node start
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ../../organizations/peerOrganizations/clinic.onehealthglobal.com/peers/peer0.clinic.onehealthglobal.com/msp:/etc/hyperledger/fabric/msp
+      - ../../organizations/peerOrganizations/clinic.onehealthglobal.com/peers/peer0.clinic.onehealthglobal.com/tls:/etc/hyperledger/fabric/tls
+      - peer0.clinic.onehealthglobal.com:/var/hyperledger/production
+    ports:
+      - "9051:9051"
+      - "9445:9445"
+    depends_on:
+      - couchdb.clinic
+    networks:
+      - ohg-network

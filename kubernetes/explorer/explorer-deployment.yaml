@@ -1,0 +1,135 @@
+# One Health Global — Explorer Kubernetes Deployment
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: explorer
+  namespace: ohg-fabric
+  labels:
+    app: explorer
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: explorer
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: explorerdb
+  namespace: ohg-fabric
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: explorerdb
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: explorerdb
+  namespace: ohg-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: explorerdb
+  template:
+    metadata:
+      labels:
+        app: explorerdb
+    spec:
+      containers:
+        - name: explorerdb
+          image: hyperledger/explorer-db:latest
+          ports:
+            - containerPort: 5432
+          env:
+            - name: DATABASE_DATABASE
+              value: fabricexplorer
+            - name: DATABASE_USERNAME
+              value: hppoc
+            - name: DATABASE_PASSWORD
+              value: password
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: pgdata
+          persistentVolumeClaim:
+            claimName: explorerdb-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: explorer
+  namespace: ohg-fabric
+  labels:
+    app: explorer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: explorer
+  template:
+    metadata:
+      labels:
+        app: explorer
+    spec:
+      containers:
+        - name: explorer
+          image: hyperledger/explorer:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DATABASE_HOST
+              value: explorerdb
+            - name: DATABASE_DATABASE
+              value: fabricexplorer
+            - name: DATABASE_USERNAME
+              value: hppoc
+            - name: DATABASE_PASSWD
+              value: password
+            - name: LOG_LEVEL_APP
+              value: info
+            - name: DISCOVERY_AS_LOCALHOST
+              value: "false"
+          volumeMounts:
+            - name: explorer-config
+              mountPath: /opt/explorer/app/platform/fabric/config.json
+              subPath: config.json
+            - name: explorer-connection
+              mountPath: /opt/explorer/app/platform/fabric/connection-profile/connection-profile.json
+              subPath: connection-profile.json
+            - name: crypto
+              mountPath: /tmp/crypto
+      volumes:
+        - name: explorer-config
+          configMap:
+            name: explorer-config
+        - name: explorer-connection
+          configMap:
+            name: explorer-connection-profile
+        - name: crypto
+          secret:
+            secretName: fabric-crypto
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: explorerdb-pvc
+  namespace: ohg-fabric
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

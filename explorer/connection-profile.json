@@ -1,0 +1,84 @@
+{
+  "name": "One Health Global Healthcare Network",
+  "version": "1.0.0",
+  "license": "Apache-2.0",
+  "client": {
+    "tlsEnable": true,
+    "adminCredential": {
+      "id": "admin",
+      "password": "adminpw"
+    },
+    "enableAuthentication": true,
+    "organization": "OHGHospitalOrgMSP",
+    "connection": {
+      "timeout": {
+        "peer": {
+          "endorser": "300"
+        },
+        "orderer": "300"
+      }
+    }
+  },
+  "channels": {
+    "healthchannel": {
+      "peers": {
+        "peer0.hospital.onehealthglobal.com": {},
+        "peer0.clinic.onehealthglobal.com": {}
+      }
+    }
+  },
+  "organizations": {
+    "OHGHospitalOrgMSP": {
+      "mspid": "OHGHospitalOrgMSP",
+      "adminPrivateKey": {
+        "path": "/tmp/crypto/peerOrganizations/hospital.onehealthglobal.com/users/Admin@hospital.onehealthglobal.com/msp/keystore/priv_sk"
+      },
+      "peers": [
+        "peer0.hospital.onehealthglobal.com"
+      ],
+      "signedCert": {
+        "path": "/tmp/crypto/peerOrganizations/hospital.onehealthglobal.com/users/Admin@hospital.onehealthglobal.com/msp/signcerts/cert.pem"
+      }
+    },
+    "OHGClinicOrgMSP": {
+      "mspid": "OHGClinicOrgMSP",
+      "adminPrivateKey": {
+        "path": "/tmp/crypto/peerOrganizations/clinic.onehealthglobal.com/users/Admin@clinic.onehealthglobal.com/msp/keystore/priv_sk"
+      },
+      "peers": [
+        "peer0.clinic.onehealthglobal.com"
+      ],
+      "signedCert": {
+        "path": "/tmp/crypto/peerOrganizations/clinic.onehealthglobal.com/users/Admin@clinic.onehealthglobal.com/msp/signcerts/cert.pem"
+      }
+    }
+  },
+  "peers": {
+    "peer0.hospital.onehealthglobal.com": {
+      "url": "grpcs://peer0.hospital.onehealthglobal.com:7051",
+      "tlsCACerts": {
+        "path": "/tmp/crypto/peerOrganizations/hospital.onehealthglobal.com/peers/peer0.hospital.onehealthglobal.com/tls/ca.crt"
+      },
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.hospital.onehealthglobal.com"
+      }
+    },
+    "peer0.clinic.onehealthglobal.com": {
+      "url": "grpcs://peer0.clinic.onehealthglobal.com:9051",
+      "tlsCACerts": {
+        "path": "/tmp/crypto/peerOrganizations/clinic.onehealthglobal.com/peers/peer0.clinic.onehealthglobal.com/tls/ca.crt"
+      },
+      "grpcOptions": {
+        "ssl-target-name-override": "peer0.clinic.onehealthglobal.com"
+      }
+    }
+  },
+  "orderers": {
+    "orderer.onehealthglobal.com": {
+      "url": "grpcs://orderer.onehealthglobal.com:7050",
+      "tlsCACerts": {
+        "path": "/tmp/crypto/ordererOrganizations/onehealthglobal.com/orderers/orderer.onehealthglobal.com/tls/ca.crt"
+      }
+    }
+  }
+}

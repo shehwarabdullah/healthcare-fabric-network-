@@ -1,0 +1,75 @@
+# One Health Global — Certificate Authority Services
+# One CA per organization (Hospital, Clinic, Orderer)
+# For production: chain these under a Root CA (see docs/OPERATIONS.md)
+
+networks:
+  ohg-network:
+    name: ohg-network
+    driver: bridge
+
+services:
+  # ============================================================
+  # CA — Hospital Org (OHGHospitalOrg)
+  # ============================================================
+  ca.hospital.onehealthglobal.com:
+    image: hyperledger/fabric-ca:1.5.9
+    container_name: ca.hospital.onehealthglobal.com
+    hostname: ca.hospital.onehealthglobal.com
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-hospital-ohg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=7054
+      - FABRIC_CA_SERVER_CSR_CN=ca.hospital.onehealthglobal.com
+      - FABRIC_CA_SERVER_CSR_HOSTS=ca.hospital.onehealthglobal.com,localhost
+    ports:
+      - "7054:7054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../../organizations/fabric-ca/hospital:/etc/hyperledger/fabric-ca-server
+    networks:
+      - ohg-network
+
+  # ============================================================
+  # CA — Clinic Org (OHGClinicOrg)
+  # ============================================================
+  ca.clinic.onehealthglobal.com:
+    image: hyperledger/fabric-ca:1.5.9
+    container_name: ca.clinic.onehealthglobal.com
+    hostname: ca.clinic.onehealthglobal.com
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-clinic-ohg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=8054
+      - FABRIC_CA_SERVER_CSR_CN=ca.clinic.onehealthglobal.com
+      - FABRIC_CA_SERVER_CSR_HOSTS=ca.clinic.onehealthglobal.com,localhost
+    ports:
+      - "8054:8054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../../organizations/fabric-ca/clinic:/etc/hyperledger/fabric-ca-server
+    networks:
+      - ohg-network
+
+  # ============================================================
+  # CA — Orderer Org
+  # ============================================================
+  ca.orderer.onehealthglobal.com:
+    image: hyperledger/fabric-ca:1.5.9
+    container_name: ca.orderer.onehealthglobal.com
+    hostname: ca.orderer.onehealthglobal.com
+    environment:
+      - FABRIC_CA_HOME=/etc/hyperledger/fabric-ca-server
+      - FABRIC_CA_SERVER_CA_NAME=ca-orderer-ohg
+      - FABRIC_CA_SERVER_TLS_ENABLED=true
+      - FABRIC_CA_SERVER_PORT=9054
+      - FABRIC_CA_SERVER_CSR_CN=ca.orderer.onehealthglobal.com
+      - FABRIC_CA_SERVER_CSR_HOSTS=ca.orderer.onehealthglobal.com,localhost
+    ports:
+      - "9054:9054"
+    command: sh -c 'fabric-ca-server start -b admin:adminpw -d'
+    volumes:
+      - ../../organizations/fabric-ca/ordererOrg:/etc/hyperledger/fabric-ca-server
+    networks:
+      - ohg-network

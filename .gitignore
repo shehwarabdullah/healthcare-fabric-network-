@@ -1,0 +1,32 @@
+# Generated crypto material
+organizations/
+channel-artifacts/*.block
+channel-artifacts/*.tx
+channel-artifacts/*.pb
+channel-artifacts/*.json
+channel-artifacts/*.tar.gz
+channel-artifacts/cert-rotation/
+
+# Go vendor
+chaincode/healthcare/go/vendor/
+
+# Docker volumes
+docker/*/data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Binaries
+bin/
+builders/
+config/

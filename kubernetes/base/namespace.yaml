@@ -1,0 +1,33 @@
+# One Health Global — Kubernetes Base Configuration
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ohg-fabric
+  labels:
+    app.kubernetes.io/part-of: one-health-global
+    app.kubernetes.io/managed-by: ohg-ops
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ohg-fabric-config
+  namespace: ohg-fabric
+data:
+  CHANNEL_NAME: "healthchannel"
+  CHAINCODE_NAME: "healthcare"
+  DOMAIN: "onehealthglobal.com"
+  ORG1_DOMAIN: "hospital.onehealthglobal.com"
+  ORG2_DOMAIN: "clinic.onehealthglobal.com"
+  ORG1_MSPID: "OHGHospitalOrgMSP"
+  ORG2_MSPID: "OHGClinicOrgMSP"
+  ORDERER_MSPID: "OHGOrdererOrgMSP"
+
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ohg-fabric-storage
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer

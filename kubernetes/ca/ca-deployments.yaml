@@ -1,0 +1,140 @@
+# One Health Global — Fabric CA on Kubernetes
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca-root
+  namespace: ohg-fabric
+spec:
+  type: ClusterIP
+  ports:
+    - port: 7054
+      targetPort: 7054
+  selector:
+    app: ca-root
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-root
+  namespace: ohg-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ca-root
+  template:
+    metadata:
+      labels:
+        app: ca-root
+    spec:
+      containers:
+        - name: fabric-ca
+          image: hyperledger/fabric-ca:1.5.9
+          ports:
+            - containerPort: 7054
+          env:
+            - name: FABRIC_CA_HOME
+              value: /etc/hyperledger/fabric-ca-server
+            - name: FABRIC_CA_SERVER_CA_NAME
+              value: ca-root-ohg
+            - name: FABRIC_CA_SERVER_TLS_ENABLED
+              value: "true"
+            - name: FABRIC_CA_SERVER_PORT
+              value: "7054"
+          command: ["sh", "-c", "fabric-ca-server start -b admin:adminpw -d"]
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca-hospital
+  namespace: ohg-fabric
+spec:
+  type: ClusterIP
+  ports:
+    - port: 7055
+      targetPort: 7055
+  selector:
+    app: ca-hospital
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-hospital
+  namespace: ohg-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ca-hospital
+  template:
+    metadata:
+      labels:
+        app: ca-hospital
+    spec:
+      containers:
+        - name: fabric-ca
+          image: hyperledger/fabric-ca:1.5.9
+          ports:
+            - containerPort: 7055
+          env:
+            - name: FABRIC_CA_HOME
+              value: /etc/hyperledger/fabric-ca-server
+            - name: FABRIC_CA_SERVER_CA_NAME
+              value: ca-hospital-ohg
+            - name: FABRIC_CA_SERVER_TLS_ENABLED
+              value: "true"
+            - name: FABRIC_CA_SERVER_PORT
+              value: "7055"
+          command: ["sh", "-c", "fabric-ca-server start -b admin:adminpw -d -u https://admin:adminpw@ca-root:7054"]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ca-clinic
+  namespace: ohg-fabric
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8055
+      targetPort: 8055
+  selector:
+    app: ca-clinic
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ca-clinic
+  namespace: ohg-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ca-clinic
+  template:
+    metadata:
+      labels:
+        app: ca-clinic
+    spec:
+      containers:
+        - name: fabric-ca
+          image: hyperledger/fabric-ca:1.5.9
+          ports:
+            - containerPort: 8055
+          env:
+            - name: FABRIC_CA_HOME
+              value: /etc/hyperledger/fabric-ca-server
+            - name: FABRIC_CA_SERVER_CA_NAME
+              value: ca-clinic-ohg
+            - name: FABRIC_CA_SERVER_TLS_ENABLED
+              value: "true"
+            - name: FABRIC_CA_SERVER_PORT
+              value: "8055"
+          command: ["sh", "-c", "fabric-ca-server start -b admin:adminpw -d -u https://admin:adminpw@ca-root:7054"]

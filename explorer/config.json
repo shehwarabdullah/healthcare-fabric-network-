@@ -1,0 +1,9 @@
+{
+  "network-configs": {
+    "ohg-network": {
+      "name": "One Health Global Healthcare Network",
+      "profile": "./connection-profile/connection-profile.json"
+    }
+  },
+  "license": "Apache-2.0"
+}

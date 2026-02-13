@@ -1,0 +1,130 @@
+# One Health Global — Orderer Kubernetes Deployment
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: orderer
+  namespace: ohg-fabric
+  labels:
+    app: orderer
+    org: ohg-orderer
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 7050
+      targetPort: 7050
+    - name: admin
+      port: 7053
+      targetPort: 7053
+    - name: operations
+      port: 8443
+      targetPort: 8443
+  selector:
+    app: orderer
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orderer
+  namespace: ohg-fabric
+  labels:
+    app: orderer
+    org: ohg-orderer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orderer
+  template:
+    metadata:
+      labels:
+        app: orderer
+        org: ohg-orderer
+    spec:
+      containers:
+        - name: orderer
+          image: hyperledger/fabric-orderer:2.5.9
+          ports:
+            - containerPort: 7050
+            - containerPort: 7053
+            - containerPort: 8443
+          env:
+            - name: FABRIC_LOGGING_SPEC
+              value: INFO
+            - name: ORDERER_GENERAL_LISTENADDRESS
+              value: "0.0.0.0"
+            - name: ORDERER_GENERAL_LISTENPORT
+              value: "7050"
+            - name: ORDERER_GENERAL_LOCALMSPID
+              value: OHGOrdererOrgMSP
+            - name: ORDERER_GENERAL_LOCALMSPDIR
+              value: /var/hyperledger/orderer/msp
+            - name: ORDERER_GENERAL_BOOTSTRAPMETHOD
+              value: none
+            - name: ORDERER_CHANNELPARTICIPATION_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_GENERAL_TLS_PRIVATEKEY
+              value: /var/hyperledger/orderer/tls/server.key
+            - name: ORDERER_GENERAL_TLS_CERTIFICATE
+              value: /var/hyperledger/orderer/tls/server.crt
+            - name: ORDERER_GENERAL_TLS_ROOTCAS
+              value: "[/var/hyperledger/orderer/tls/ca.crt]"
+            - name: ORDERER_ADMIN_LISTENADDRESS
+              value: "0.0.0.0:7053"
+            - name: ORDERER_ADMIN_TLS_ENABLED
+              value: "true"
+            - name: ORDERER_ADMIN_TLS_CERTIFICATE
+              value: /var/hyperledger/orderer/tls/server.crt
+            - name: ORDERER_ADMIN_TLS_PRIVATEKEY
+              value: /var/hyperledger/orderer/tls/server.key
+            - name: ORDERER_ADMIN_TLS_ROOTCAS
+              value: "[/var/hyperledger/orderer/tls/ca.crt]"
+            - name: ORDERER_ADMIN_TLS_CLIENTAUTHREQUIRED
+              value: "true"
+            - name: ORDERER_ADMIN_TLS_CLIENTROOTCAS
+              value: "[/var/hyperledger/orderer/tls/ca.crt]"
+            - name: ORDERER_OPERATIONS_LISTENADDRESS
+              value: "0.0.0.0:8443"
+            - name: ORDERER_METRICS_PROVIDER
+              value: prometheus
+          volumeMounts:
+            - name: orderer-msp
+              mountPath: /var/hyperledger/orderer/msp
+            - name: orderer-tls
+              mountPath: /var/hyperledger/orderer/tls
+            - name: orderer-data
+              mountPath: /var/hyperledger/production/orderer
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: orderer-msp
+          secret:
+            secretName: orderer-msp
+        - name: orderer-tls
+          secret:
+            secretName: orderer-tls
+        - name: orderer-data
+          persistentVolumeClaim:
+            claimName: orderer-data-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: orderer-data-pvc
+  namespace: ohg-fabric
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi

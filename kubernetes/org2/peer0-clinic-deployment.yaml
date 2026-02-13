@@ -1,0 +1,221 @@
+# One Health Global — Clinic Peer (Org2) Kubernetes Deployment
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: peer0-clinic
+  namespace: ohg-fabric
+  labels:
+    app: peer0-clinic
+    org: ohg-clinic
+spec:
+  type: ClusterIP
+  ports:
+    - name: grpc
+      port: 9051
+      targetPort: 9051
+    - name: chaincode
+      port: 9052
+      targetPort: 9052
+    - name: operations
+      port: 9445
+      targetPort: 9445
+  selector:
+    app: peer0-clinic
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: couchdb-clinic
+  namespace: ohg-fabric
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5984
+      targetPort: 5984
+  selector:
+    app: couchdb-clinic
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: couchdb-clinic
+  namespace: ohg-fabric
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: couchdb-clinic
+  template:
+    metadata:
+      labels:
+        app: couchdb-clinic
+    spec:
+      containers:
+        - name: couchdb
+          image: couchdb:3.3.3
+          ports:
+            - containerPort: 5984
+          env:
+            - name: COUCHDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-credentials-clinic
+                  key: username
+            - name: COUCHDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-credentials-clinic
+                  key: password
+          volumeMounts:
+            - name: couchdb-data
+              mountPath: /opt/couchdb/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+      volumes:
+        - name: couchdb-data
+          persistentVolumeClaim:
+            claimName: couchdb-clinic-pvc
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: peer0-clinic
+  namespace: ohg-fabric
+  labels:
+    app: peer0-clinic
+    org: ohg-clinic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: peer0-clinic
+  template:
+    metadata:
+      labels:
+        app: peer0-clinic
+        org: ohg-clinic
+    spec:
+      containers:
+        - name: peer
+          image: hyperledger/fabric-peer:2.5.9
+          ports:
+            - containerPort: 9051
+            - containerPort: 9052
+            - containerPort: 9445
+          env:
+            - name: FABRIC_LOGGING_SPEC
+              value: INFO
+            - name: CORE_PEER_ID
+              value: peer0.clinic.onehealthglobal.com
+            - name: CORE_PEER_ADDRESS
+              value: peer0-clinic:9051
+            - name: CORE_PEER_LISTENADDRESS
+              value: 0.0.0.0:9051
+            - name: CORE_PEER_CHAINCODEADDRESS
+              value: peer0-clinic:9052
+            - name: CORE_PEER_CHAINCODELISTENADDRESS
+              value: 0.0.0.0:9052
+            - name: CORE_PEER_GOSSIP_BOOTSTRAP
+              value: peer0-clinic:9051
+            - name: CORE_PEER_GOSSIP_EXTERNALENDPOINT
+              value: peer0-clinic:9051
+            - name: CORE_PEER_LOCALMSPID
+              value: OHGClinicOrgMSP
+            - name: CORE_PEER_MSPCONFIGPATH
+              value: /etc/hyperledger/fabric/msp
+            - name: CORE_PEER_TLS_ENABLED
+              value: "true"
+            - name: CORE_PEER_TLS_CERT_FILE
+              value: /etc/hyperledger/fabric/tls/server.crt
+            - name: CORE_PEER_TLS_KEY_FILE
+              value: /etc/hyperledger/fabric/tls/server.key
+            - name: CORE_PEER_TLS_ROOTCERT_FILE
+              value: /etc/hyperledger/fabric/tls/ca.crt
+            - name: CORE_LEDGER_STATE_STATEDATABASE
+              value: CouchDB
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_COUCHDBADDRESS
+              value: couchdb-clinic:5984
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-credentials-clinic
+                  key: username
+            - name: CORE_LEDGER_STATE_COUCHDBCONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: couchdb-credentials-clinic
+                  key: password
+            - name: CORE_OPERATIONS_LISTENADDRESS
+              value: 0.0.0.0:9445
+            - name: CORE_METRICS_PROVIDER
+              value: prometheus
+          volumeMounts:
+            - name: peer-msp
+              mountPath: /etc/hyperledger/fabric/msp
+            - name: peer-tls
+              mountPath: /etc/hyperledger/fabric/tls
+            - name: peer-data
+              mountPath: /var/hyperledger/production
+          resources:
+            requests:
+              cpu: 200m
+              memory: 512Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+      volumes:
+        - name: peer-msp
+          secret:
+            secretName: peer0-clinic-msp
+        - name: peer-tls
+          secret:
+            secretName: peer0-clinic-tls
+        - name: peer-data
+          persistentVolumeClaim:
+            claimName: peer0-clinic-pvc
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: peer0-clinic-pvc
+  namespace: ohg-fabric
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: couchdb-clinic-pvc
+  namespace: ohg-fabric
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: couchdb-credentials-clinic
+  namespace: ohg-fabric
+type: Opaque
+stringData:
+  username: couchdbadmin
+  password: couchdbadminpw

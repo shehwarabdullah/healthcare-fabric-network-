@@ -1,0 +1,177 @@
+################################################################################
+#   One Health Global — configtx.yaml
+#   Hyperledger Fabric v2.5 Channel Configuration
+################################################################################
+
+---
+Organizations:
+  - &OrdererOrg
+    Name: OHGOrdererOrg
+    ID: OHGOrdererOrgMSP
+    MSPDir: ../organizations/ordererOrganizations/onehealthglobal.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OHGOrdererOrgMSP.member')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OHGOrdererOrgMSP.member')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OHGOrdererOrgMSP.admin')"
+    OrdererEndpoints:
+      - orderer.onehealthglobal.com:7050
+
+  - &OHGHospitalOrg
+    Name: OHGHospitalOrgMSP
+    ID: OHGHospitalOrgMSP
+    MSPDir: ../organizations/peerOrganizations/hospital.onehealthglobal.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OHGHospitalOrgMSP.admin', 'OHGHospitalOrgMSP.peer', 'OHGHospitalOrgMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OHGHospitalOrgMSP.admin', 'OHGHospitalOrgMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OHGHospitalOrgMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('OHGHospitalOrgMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.hospital.onehealthglobal.com
+        Port: 7051
+
+  - &OHGClinicOrg
+    Name: OHGClinicOrgMSP
+    ID: OHGClinicOrgMSP
+    MSPDir: ../organizations/peerOrganizations/clinic.onehealthglobal.com/msp
+    Policies:
+      Readers:
+        Type: Signature
+        Rule: "OR('OHGClinicOrgMSP.admin', 'OHGClinicOrgMSP.peer', 'OHGClinicOrgMSP.client')"
+      Writers:
+        Type: Signature
+        Rule: "OR('OHGClinicOrgMSP.admin', 'OHGClinicOrgMSP.client')"
+      Admins:
+        Type: Signature
+        Rule: "OR('OHGClinicOrgMSP.admin')"
+      Endorsement:
+        Type: Signature
+        Rule: "OR('OHGClinicOrgMSP.peer')"
+    AnchorPeers:
+      - Host: peer0.clinic.onehealthglobal.com
+        Port: 9051
+
+################################################################################
+#   Capabilities
+################################################################################
+Capabilities:
+  Channel: &ChannelCapabilities
+    V2_0: true
+  Orderer: &OrdererCapabilities
+    V2_0: true
+  Application: &ApplicationCapabilities
+    V2_0: true
+
+################################################################################
+#   Application
+################################################################################
+Application: &ApplicationDefaults
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    LifecycleEndorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+    Endorsement:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Endorsement"
+  Capabilities:
+    <<: *ApplicationCapabilities
+
+################################################################################
+#   Orderer
+################################################################################
+Orderer: &OrdererDefaults
+  OrdererType: etcdraft
+  Addresses:
+    - orderer.onehealthglobal.com:7050
+  EtcdRaft:
+    Consenters:
+      - Host: orderer.onehealthglobal.com
+        Port: 7050
+        ClientTLSCert: ../organizations/ordererOrganizations/onehealthglobal.com/orderers/orderer.onehealthglobal.com/tls/server.crt
+        ServerTLSCert: ../organizations/ordererOrganizations/onehealthglobal.com/orderers/orderer.onehealthglobal.com/tls/server.crt
+  BatchTimeout: 2s
+  BatchSize:
+    MaxMessageCount: 10
+    AbsoluteMaxBytes: 99 MB
+    PreferredMaxBytes: 512 KB
+  Organizations:
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+    BlockValidation:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+  Capabilities:
+    <<: *OrdererCapabilities
+
+################################################################################
+#   Channel
+################################################################################
+Channel: &ChannelDefaults
+  Policies:
+    Readers:
+      Type: ImplicitMeta
+      Rule: "ANY Readers"
+    Writers:
+      Type: ImplicitMeta
+      Rule: "ANY Writers"
+    Admins:
+      Type: ImplicitMeta
+      Rule: "MAJORITY Admins"
+  Capabilities:
+    <<: *ChannelCapabilities
+
+################################################################################
+#   Profiles
+################################################################################
+Profiles:
+  OHGOrdererGenesis:
+    <<: *ChannelDefaults
+    Orderer:
+      <<: *OrdererDefaults
+      Organizations:
+        - *OrdererOrg
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *OHGHospitalOrg
+        - *OHGClinicOrg
+
+  OHGHealthChannel:
+    <<: *ChannelDefaults
+    Consortium: OHGConsortium
+    Application:
+      <<: *ApplicationDefaults
+      Organizations:
+        - *OHGHospitalOrg
+        - *OHGClinicOrg
